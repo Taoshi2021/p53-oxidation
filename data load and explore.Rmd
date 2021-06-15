@@ -1,0 +1,219 @@
+---
+title: "plot data"
+author: "Tao Shi"
+date: "4/6/2020"
+output: html_document
+editor_options: 
+  chunk_output_type: console
+---
+
+# data load
+```{r}
+require(SummarizedExperiment)
+```
+
+```{r}
+# load the data by read.table
+protein_Group <- read.table("rawdata/proteinGroups.txt", 
+                            header= TRUE, 
+                            sep = "\t",
+                            quote = "", 
+                            stringsAsFactors = FALSE)
+                          
+# sample_id= NA
+condition= rep(c ("WT",
+                    "WT_Dia",
+                    "C182SC277S_Dia",
+                    "C182S_Dia"), each= 4) 
+replicate= rep (c(1:4), 4)
+
+experiment_design <- data.frame(condition, replicate)  
+sample_id <- paste(experiment_design$condition, 
+                  experiment_design$replicate, sep = '.')
+                           
+experiment_design<- data.frame(sample_id, condition, replicate) 
+
+row_data<- protein_Group[, c(1:12, 73:78, 205:209)] 
+# by check the colname(protein_Groups) annotations of proteins and peptides
+int_matrix <- protein_Group[, c(134:137, 138:141,122:125, 126:129)]
+ibaq_matrix<- protein_Group[, c(155: 158, 159: 162, 143: 146, 147: 150)]
+lfq_matrix <- protein_Group[, c(175:178, 179: 182, 163:166, 167: 170)]
+
+assays_list <- list( int = int_matrix, ibaq= ibaq_matrix, lfq= lfq_matrix)
+
+assays_list <- lapply(assays_list, function(x){
+  rownames(x) <- NULL # reset the row names to seq_len(nrow(x))
+  colnames(x) <- NULL
+  x <- as.matrix(x) 
+  x[x == 0] <- NA
+  return(x)
+})
+
+SE <- SummarizedExperiment(assays = assays_list, 
+                           rowData = row_data, 
+                           colData = experiment_design)
+
+save (SE, file= 'rdata/expObj.RData')
+```
+
+# require packages
+```{r}
+require (ggplot2)  
+require (UpSetR)  
+require (gplots) 
+require (corrplot) # plot to visualize matrix correlation
+require (PerformanceAnalytics) #an be used to display a chart of a correlation matrix.
+require (factoextra)
+require (ggpubr) 
+require (ggsignif)
+require(ggrepel)
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7") 
+
+```
+
+#  Remove contaminants and reverse matches
+```{r}
+nrow(SE)
+sum(rowData(SE)$Potential.contaminant == '+')
+SE <- SE[which(rowData(SE)$Potential.contaminant != '+'), ]
+
+nrow(SE)
+
+sum(rowData(SE)$Reverse == '+')
+SE <- SE[which(rowData(SE)$Reverse != '+'),]
+
+nrow(SE)
+
+```
+44 potential.contaminant and 33 reverse wwere removed.
+
+# Total proteins identifed per samples
+```{r paged.print=FALSE}
+
+counts <- apply(assays(SE)[['lfq']], 2, function(x) sum(!is.na(x))) 
+# choose the lfq matrix
+
+plotDf <- as.data.frame(colData(SE))
+plotDf$counts <- counts
+# plootDf has to be a dataframe
+
+ plotDf$sample_id <- as.character(plotDf$sample_id)
+ plotDf$sample_id<- factor(plotDf$sample_id, levels = c ('WT.1','WT.2','WT.3','WT.4',
+                                       'WT_Dia.1',  'WT_Dia.2','WT_Dia.3','WT_Dia.4',
+                                                 'C182SC277S_Dia.1','C182SC277S_Dia.2', 'C182SC277S_Dia.3', 'C182SC277S_Dia.4',
+                'C182S_Dia.1','C182S_Dia.2',  'C182S_Dia.3',  'C182S_Dia.4'   ))   
+ 
+ plotDf$condition<- factor(plotDf$condition, levels = c('WT', 'WT_Dia', 'C182SC277S_Dia', 'C182S_Dia'))    
+ 
+tiff (file= 'plots/Total proteins.tiff', units="in", width =5, height=3, res= 300)
+ggplot() + 
+  geom_bar(data = plotDf, 
+            aes(x = sample_id, y = counts, fill = condition), stat = 'identity') + 
+         labs(x = NULL, y= 'Total proteins') + 
+  scale_x_discrete(labels= rep(c('R1','R2', 'R3','R4'), 4)) +
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 60, size = 10, hjust = 1))+
+  scale_fill_manual (values = cbPalette) 
+  
+dev.off()
+# The plot is shown in Fig.S5B
+```
+
+# PCA assay
+```{r }
+cbPalette <- c("#E69F00", "#56B4E9", "#009E73", "#F0E442", "#0072B2", "#D55E00", "#CC79A7")
+matrix<- assays(SE)[['lfq']] 
+
+matrix<- log2(matrix) 
+
+matrix[is.na(matrix)] <- 0
+
+colnames(matrix) <- colData(SE)[, 'sample_id']
+
+t(matrix) # transpose a matrix or data.frame
+
+pca <- prcomp(t(matrix))  
+# Performs a principal components analysis on the given data matrix and returns the results as an object of class prcomp.
+
+# pca$dim1 captures the direction where the most variation is
+fviz_eig(pca) # "ggblot2" based published ready
+
+fviz_pca_ind (pca, axes = c(1, 2), repel = TRUE, col.ind = "cos2")
+
+plotDf <- as.data.frame(pca$x)
+plotDf$condition <- colData(SE)[,'condition']
+
+plotDf$condition<- factor(plotDf$condition, levels = c('WT', 'WT_Dia', 'C182SC277S_Dia', 'C182S_Dia'))
+
+tiff(file = 'plots/pca.tiff', units = 'in', height = 3, width = 5, res = 300)
+ggplot(data = plotDf) +
+  geom_point(aes(x = PC1, y = PC2, color = condition), size = 3) + 
+  scale_color_manual(values = cbPalette) + 
+  theme_bw()
+dev.off()
+
+# The plots is shown as in Fig.5SD
+```
+
+# remove the ones with Peptides<3 and save the filtered one
+```{r}
+sum(rowData(SE)$Peptides < 3)
+hist(rowData(SE)$Peptides,xlim = c(0, 30), breaks = 100)
+which(rowData(SE)$Peptides > 2)
+SE <-SE[which(rowData(SE)$Peptides > 2), ]
+
+nrow(SE)
+
+save(SE, file = 'rdata/SE.RData')
+
+
+```
+
+# boxplots showing protein distribution
+
+```{r }
+load('rdata/SE.RData')
+nrow(SE)
+assays(SE)[['lfq_log']] <- log2(assays(SE)[['lfq']])
+
+plotDf <- data.frame ( lfq_log = as.vector (assays(SE)[['lfq_log']]),
+                     condition = rep(colData(SE)$condition, each = nrow(SE)), 
+                     sample = rep(colData(SE)$sample_id, each = nrow(SE)),
+                     Gene.names = rep(rowData(SE)$Gene.names, 4))
+# as. vector(): converts a distributed matrix into a non-distributed vector
+# as.factor (): converts a variable into a factor, but preserves variable and value label attributes
+# as.vector to correspond to condition and sample
+plotDf$condition<- factor(plotDf$condition, levels= c('WT', 'WT_Dia', 'C182SC277S_Dia', 'C182S_Dia'))
+plotDf$sample<- factor(plotDf$sample, levels= c('WT.1', 'WT.2', 'WT.3', 'WT.4', 
+                                'WT_Dia.1','WT_Dia.2', 'WT_Dia.3', 'WT_Dia.4',
+                                'C182SC277S_Dia.1','C182SC277S_Dia.2', 'C182SC277S_Dia.3', 'C182SC277S_Dia.4',
+                                'C182S_Dia.1', 'C182S_Dia.2', 'C182S_Dia.3', 'C182S_Dia.4'))
+
+tiff(file ='plots/boxplot.tiff', units = 'in', height = 3, width = 5, res =300)
+ggplot(data = plotDf) + 
+  geom_boxplot(aes(x = sample, y = lfq_log, fill = condition)) +
+  scale_x_discrete(labels= rep(c('R1','R2', 'R3','R4'), 4)) +
+  scale_fill_manual(values = cbPalette) + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 60, size = 11, hjust = 1)) + 
+  labs(x = NULL, y='Log2(LFQ)')
+dev.off()
+
+# the 'boxplot.tiff' is shown in Fig.S5C
+# specify TP53
+
+require(ggrepel)
+
+spe<-  plotDf[grep("TP53", plotDf$Gene.names), ]
+ggplot(data = plotDf) + 
+  geom_boxplot(aes(x = sample, y = lfq_log, fill = condition)) +
+  scale_x_discrete(labels= rep(c('R1','R2', 'R3','R4'), 4))+
+  scale_fill_manual(values = cbPalette) + 
+  theme_bw() + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  labs(x = 'Sample') +
+  geom_text_repel ( data = spe, aes (x= sample, y= lfq_log, label= Gene.names))
+  
+# TP53 is the most abundant protein and shows equal intensity all over the samples, 
+
+```
