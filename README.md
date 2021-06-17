@@ -9,10 +9,10 @@ Two R scripts:
 
 #Dependences 
 
-`R` = `3.6.1`
+-`R` = `3.6.1`
     - `ggplot2` = `3.2.1`
-    - `RColorBrewer` = `1.1`
-    - `tiff` = `0.1`
+    - `UpsetR` = `1.4.0`
+
 
 # License
 
