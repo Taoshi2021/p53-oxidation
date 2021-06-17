@@ -1,0 +1,2 @@
+name,pval,adj_pval,diff,t_statistic,se,df,avg_abundance,n_approx,n_obs,Gene.names,n_obs_wt,n_obs_C182S
+TP53,0.994470456,0.995226315,0.014174391,0.007076045,2.003151679,12,24.07009404,16,16,TP53,0,0

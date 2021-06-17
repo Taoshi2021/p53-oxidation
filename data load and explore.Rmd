@@ -151,13 +151,12 @@ ggplot(data = plotDf) +
   scale_color_manual(values = cbPalette) + 
   theme_bw()
 dev.off()
-
-# The plots is shown as in Fig.5SD
+# The plots is shown as in Fig.S5D
 ```
 
 # remove the ones with Peptides<3 and save the filtered one
 ```{r}
-sum(rowData(SE)$Peptides < 3)
+sum(rowData(SE)$Peptides < 2)
 hist(rowData(SE)$Peptides,xlim = c(0, 30), breaks = 100)
 which(rowData(SE)$Peptides > 2)
 SE <-SE[which(rowData(SE)$Peptides > 2), ]

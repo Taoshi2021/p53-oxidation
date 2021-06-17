@@ -121,7 +121,7 @@ diff_df_w8$n_obs_wt <- apply(assays(SE)[['lfq_log']][,c(5:8)], 1, function(x) su
 diff_df_w8$n_obs_C182S <- apply(assays(SE)[['lfq_log']][,c(12:16)], 1, function(x) sum(is.na(x)))
 
 
-#write.csv (diff_df_w8, file ='results/diff_df_w8.csv', row.names = FALSE) 
+write.csv (diff_df_w8, file ='results/diff_df_w8.csv', row.names = FALSE) 
 
 diff_df_w8 <- read.csv("results/diff_df_w8.csv")
 
