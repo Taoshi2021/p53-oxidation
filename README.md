@@ -7,6 +7,13 @@ Two R scripts:
 - `data load and explore.Rmd`: describes how the rawdata was processed and outputs the RData(expObj.RData) and several plots shown in Fig.S5B, Fig.S5C, and Fig.S5D.
 - `data plot.Rmd` : analyses and plot the data, contains several RData(proDA_fit.RData and SE.RData),csv files(includes Table S2) and plots shown in Fig.3B, Fig.3C, Fig.3D, Fig.3E, Fig.4A and Fig.4B
 
+#Dependences 
+
+`R` = `3.6.1`
+    - `ggplot2` = `3.2.1`
+    - `RColorBrewer` = `1.1`
+    - `tiff` = `0.1`
+
 # License
 
 [Attribution 4.0 International (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/)
