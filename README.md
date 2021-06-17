@@ -8,4 +8,5 @@ data load and explore.Rmd : describes how the rawdata was processed and outputs 
 data plot.Rmd : analyses and plot the data, contains several RData(proDA_fit.RData and SE.RData),csv files(includes Table S2) and plots shown in Fig.3B, Fig.3C, Fig.3D, Fig.3E, Fig.4A and Fig.4B
 
 # License
-https://creativecommons.org/licenses/by/4.0/
+
+Attribution 4.0 International (CC BY 4.0)
